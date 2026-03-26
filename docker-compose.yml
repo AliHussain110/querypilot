@@ -1,0 +1,32 @@
+services:
+  querypilot:
+    build: .
+    ports:
+      - "7860:7860"
+    env_file:
+      - .env            # copy .env.example to .env and set OPENAI_API_KEY
+    volumes:
+      - querypilot-data:/app/data   # SQLite file + ChromaDB memory survive restarts
+    restart: unless-stopped
+
+  # Optional: run against Postgres instead of SQLite.
+  #   1. In .env set DATABASE_URL=postgresql+psycopg://querypilot:querypilot@postgres:5432/querypilot
+  #   2. docker compose --profile postgres up --build
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: querypilot
+      POSTGRES_PASSWORD: querypilot
+      POSTGRES_DB: querypilot
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U querypilot"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  querypilot-data:
+  pgdata:
